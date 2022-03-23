@@ -251,6 +251,8 @@ class _CallPageState extends State<CallPage> {
             child: Row(
               children: [
                 Container(
+                  height: 100.0,
+                   width: 100.0,
                     color: Colors.transparent,
                     child: GestureDetector(
                       onTap: () {

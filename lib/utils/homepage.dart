@@ -4,16 +4,10 @@ import 'package:agora_rtc_engine/rtc_engine.dart';
 import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
 
 import '../utils/settings.dart';
 
 class CallPage extends StatefulWidget {
-  /// non-modifiable channel name of the page
-
-  /// non-modifiable client role of the page
-
-  /// Creates a call page with given channel name.
   const CallPage({Key? key}) : super(key: key);
 
   @override
@@ -24,11 +18,12 @@ class _CallPageState extends State<CallPage> {
   final _users = <int>[];
   final _infoStrings = <String>[];
   bool muted = false;
+  var local = 1;
+  var remote = 0;
+
   late RtcEngine _engine;
   final ClientRole role = ClientRole.Broadcaster;
-  bool _joined = false;
-  int _remoteUid = 0;
-  bool _switch = false;
+
 
   @override
   void dispose() {
@@ -48,7 +43,6 @@ class _CallPageState extends State<CallPage> {
   }
 
 
-
   Future<void> initialize() async {
     await Permission.camera.request();
     await Permission.microphone.request();
@@ -66,9 +60,9 @@ class _CallPageState extends State<CallPage> {
     _addAgoraEventHandlers();
     await _engine.enableWebSdkInteroperability(true);
     VideoEncoderConfiguration configuration = VideoEncoderConfiguration();
-    configuration.dimensions = VideoDimensions(width: 2290, height: 1080);
+    configuration.dimensions = VideoDimensions(width: 1080, height: 2290);
     await _engine.setVideoEncoderConfiguration(configuration);
-    await _engine.joinChannel(TOKEN,Channel_name, null, 0);
+    await _engine.joinChannel(TOKEN, Channel_name, null, 0);
   }
 
   /// Create agora sdk instance and initialize
@@ -86,37 +80,39 @@ class _CallPageState extends State<CallPage> {
         final info = 'onError: $code';
         _infoStrings.add(info);
       });
-    }, joinChannelSuccess: (channel, uid, elapsed) {
-      setState(() {
-        final info = 'onJoinChannel: $channel, uid: $uid';
-        _infoStrings.add(info);
-        _joined = true;
-      });
-    }, leaveChannel: (stats) {
-      setState(() {
-        _infoStrings.add('onLeaveChannel');
-        _users.clear();
-      });
-    }, userJoined: (uid, elapsed) {
-      setState(() {
-        final info = 'userJoined: $uid';
-        _infoStrings.add(info);
-        _users.add(uid);
-        _remoteUid = uid;
-      });
-    }, userOffline: (uid, elapsed) {
-      setState(() {
-        final info = 'userOffline: $uid';
-        _infoStrings.add(info);
-        _users.remove(uid);
-        _remoteUid = 0;
-      });
-    }, firstRemoteVideoFrame: (uid, width, height, elapsed) {
-      setState(() {
-        final info = 'firstRemoteVideo: $uid ${width}x $height';
-        _infoStrings.add(info);
-      });
-    }));
+    },
+        joinChannelSuccess: (channel, uid, elapsed) {
+          setState(() {
+            final info = 'onJoinChannel: $channel, uid: $uid';
+            _infoStrings.add(info);
+          });
+        },
+        leaveChannel: (stats) {
+          setState(() {
+            _infoStrings.add('onLeaveChannel');
+            _users.clear();
+          });
+        },
+        userJoined: (uid, elapsed) {
+          setState(() {
+            final info = 'userJoined: $uid';
+            _infoStrings.add(info);
+            _users.add(uid);
+          });
+        },
+        userOffline: (uid, elapsed) {
+          setState(() {
+            final info = 'userOffline: $uid';
+            _infoStrings.add(info);
+            _users.remove(uid);
+          });
+        },
+        firstRemoteVideoFrame: (uid, width, height, elapsed) {
+          setState(() {
+            final info = 'firstRemoteVideo: $uid ${width}x $height';
+            _infoStrings.add(info);
+          });
+        }));
   }
 
   /// Helper function to get list of native views
@@ -160,30 +156,57 @@ class _CallPageState extends State<CallPage> {
     final views = _getRenderViews();
     switch (views.length) {
       case 1:
-        return Column(
-          children: <Widget>[_videoView(views[0])],
-        );
+        return Container(
+            child: Column(
+              children: <Widget>[_videoView(views[0])],
+            ));
       case 2:
-        return Stack(
-          children: <Widget>[
-        _expandedVideoRow([views[1]]),
-        Positioned(right: 0, child: _expandedVideoRow_userjoin([views[0]]))
-          ],
-        );
+        return Container(
+            child: Stack(
+              children: <Widget>[
+                _expandedVideoRow([views[local]]),
+                GestureDetector(
+                onTap: () {
+                  setState(() {
+                    local = 0;
+                    remote = 1;
+                  });
+                }
+                ),
+                Positioned(
+                    right: 0, child: _expandedVideoRow_userjoin([views[remote]])),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: muted
+                      ? const Icon(
+                    Icons.mic_off,
+                    color: Colors.white,
+                    size: 15,
+                  )
+                      : const Icon(
+                    Icons.mic,
+                    color: Colors.blue,
+                    size: 15,
+                  ),
+                ),
+              ]
+            ));
       case 3:
-        return Column(
-          children: <Widget>[
-        _expandedVideoRow(views.sublist(0, 2)),
-        _expandedVideoRow(views.sublist(2, 3))
-          ],
-        );
+        return Container(
+            child: Column(
+              children: <Widget>[
+                _expandedVideoRow(views.sublist(0, 2)),
+                _expandedVideoRow(views.sublist(2, 3))
+              ],
+            ));
       case 4:
-        return Column(
-          children: <Widget>[
-        _expandedVideoRow(views.sublist(0, 2)),
-        _expandedVideoRow(views.sublist(2, 4))
-          ],
-        );
+        return Container(
+            child: Column(
+              children: <Widget>[
+                _expandedVideoRow(views.sublist(0, 2)),
+                _expandedVideoRow(views.sublist(2, 4))
+              ],
+            ));
       default:
     }
     return Container();
@@ -239,41 +262,47 @@ class _CallPageState extends State<CallPage> {
     );
   }
 
-  Widget _swap() {
-    return MaterialApp(
-        home: Scaffold(
-            body: SafeArea(
-                child: Stack(children: [
-          Center
-            (child: _switch ? _renderLocalPreview() : _renderRemoteVideo()),
-          Align(
-            alignment: Alignment.topLeft,
-            child: Row(
-              children: [
-                Container(
-                  height: 100.0,
-                   width: 100.0,
-                    color: Colors.transparent,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _switch = !_switch;
-                        });
-                      },
-                      child: Center(
-                        child:
-                            _switch ? _renderRemoteVideo() : _renderLocalPreview(),
-                      ),
-                    )
-                ),
-                Icon(
-                  muted ? Icons.mic_off: null
-                ),
-              ],
-            ),
-          )
-        ]))));
-  }
+  // Widget _swap() {
+  //   return MaterialApp(
+  //       home: Scaffold(
+  //           body: SafeArea(
+  //               child: Stack(children: [
+  //         Center
+  //           (child: _switch ? _renderLocalPreview() : _renderRemoteVideo()),
+  //         Align(
+  //           alignment: Alignment.topLeft,
+  //           child: Container(
+  //             child: Row(
+  //               children: [
+  //                 Container(
+  //                   height: 100.0,
+  //                    width: 100.0,
+  //                     color: Colors.transparent,
+  //                     child: GestureDetector(
+  //                       onTap: () {
+  //                         setState(() {
+  //                           _switch = !_switch;
+  //                         });
+  //                       },
+  //                       child: Center(
+  //                         child:
+  //                             _switch ? _renderRemoteVideo() : _renderLocalPreview(),
+  //                       ),
+  //                     )
+  //                 ),
+  //                 Icon(
+  //                   muted ? Icons.mic_off: null
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         )
+  //       ]
+  //               )
+  //           )
+  //       )
+  //   );
+  // }
 
   /// Info panel to show logs
   Widget _panel() {
@@ -289,7 +318,8 @@ class _CallPageState extends State<CallPage> {
             itemCount: _infoStrings.length,
             itemBuilder: (BuildContext context, int index) {
               if (_infoStrings.isEmpty) {
-                return const Text("null"); // return type can't be null, a widget was required
+                return const Text(
+                    "null"); // return type can't be null, a widget was required
               }
               return Padding(
                 padding: const EdgeInsets.symmetric(
@@ -361,7 +391,7 @@ class _CallPageState extends State<CallPage> {
         body: Center(
           child: Stack(
             children: <Widget>[
-              _swap(),
+              //_swap(),
               _viewRows(),
               _panel(),
               _toolbar(),
@@ -372,30 +402,30 @@ class _CallPageState extends State<CallPage> {
     );
   }
 
-  Widget _renderLocalPreview() {
-    if (_joined) {
-      return RtcLocalView.SurfaceView(
-        channelId: Channel_name,
-      );
-    } else {
-      return const Text(
-        '',
-        textAlign: TextAlign.center,
-      );
-    }
-  }
-
-  Widget _renderRemoteVideo() {
-    if (_remoteUid != 0) {
-      return RtcRemoteView.SurfaceView(
-          renderMode: VideoRenderMode.Hidden,
-          uid: _remoteUid,
-          channelId: Channel_name);
-    } else {
-      return const Text(
-        '',
-        textAlign: TextAlign.center,
-      );
-    }
-  }
-}
+//   Widget _renderLocalPreview() {
+//     if (_joined) {
+//       return RtcLocalView.SurfaceView(
+//         channelId: Channel_name,
+//       );
+//     } else {
+//       return const Text(
+//         '',
+//         textAlign: TextAlign.center,
+//       );
+//     }
+//   }
+//
+//   Widget _renderRemoteVideo() {
+//     if (_remoteUid != 0) {
+//       return RtcRemoteView.SurfaceView(
+//           renderMode: VideoRenderMode.Hidden,
+//           uid: _remoteUid,
+//           channelId: Channel_name);
+//     } else {
+//       return const Text(
+//         '',
+//         textAlign: TextAlign.center,
+//       );
+//     }
+//   }
+ }

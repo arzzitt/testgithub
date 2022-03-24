@@ -1,3 +1,3 @@
-const APP_ID = '59f85da3bf634c96ae7b87753f318086';
-const TOKEN = '00659f85da3bf634c96ae7b87753f318086IABKTrIiSPiQDXgwXMtdhvISwCqujNtwe9GAMpNF4Bt+MkxK+isAAAAAEABHuwtvoIM8YgEAAQCfgzxi';
-const Channel_name = 'btc';
+const APP_ID = '2d3860b2e20e416cab381629d875d054';
+const TOKEN = '0062d3860b2e20e416cab381629d875d054IAD22O1XmQ8hD1abIuQ8FNBKOezM28kRbX93UK8yqK3itgYkvQsAAAAAEABHuwtvdLQ8YgEAAQBytDxi';
+const Channel_name = 'channel';

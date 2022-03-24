@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
             ),
             body: Container(
               padding: EdgeInsets.symmetric(vertical: 100.0,horizontal: 100.0),
-              color: Colors.white,
+              color: Colors.transparent,
               child: ElevatedButton(
                   child: const Text('Enter'),
                   style: ButtonStyle(
